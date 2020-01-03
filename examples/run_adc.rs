@@ -31,5 +31,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         sleep(Duration::from_secs(1));
     }
 
+    adc.set_defaults()?;
+
     Ok(())
 }
