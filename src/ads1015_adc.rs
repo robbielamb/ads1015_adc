@@ -8,7 +8,6 @@ use std::fmt;
 // TODO: Mulitple Address. The chip supports 0x48, 0x49, 0x4A, and 0x4B
 const ADS1X15_DEFAULT_ADDRESS: u16 = 0x48;
 
-
 // Address of the register that contains the converted value
 const ADS1X15_POINTER_CONVERSION: u8 = 0x00;
 // Address of the register containing the device configuration
@@ -23,7 +22,7 @@ const ADS1X15_POINTER_HI_THRESH: u8 = 0x03;
 /// +---------+---------+---------+---------+---------+---------+---------+---------+---------+
 /// |   Name  |    OS   |   MUX2  |   MUX1  |   MUX0  |   PGA2  |   PGA1  |   PGA0  |   MODE  |
 /// +---------+---------+---------+---------+---------+---------+---------+---------+---------+
-/// 
+///
 /// +---------+---------+---------+---------+---------+---------+---------+---------+---------+
 /// |   Bit   |     7   |    6    |    5    |    4    |     3   |     2   |     1   |    0    |
 /// +---------+---------+---------+---------+---------+---------+---------+---------+---------+
@@ -34,11 +33,11 @@ const ADS1X15_POINTER_HI_THRESH: u8 = 0x03;
 /// Bit [15] Operation Status Bits/Single Shot Conversion
 /// This bit determins the operational status of the device.
 /// Can only be written in power-down mode.
-/// 
+///
 /// For a write status:
 ///  - 0: No Effect
 ///  - 1: Begin a single conversion (when in power down mode)
-/// 
+///
 /// For read status:
 ///  - 0: Device is performing a conversion
 ///  - 1: Device is not performing a convirsion
@@ -131,7 +130,7 @@ pub enum ComparatorPolarity {
 const COMPARATOR_BITS_MASK: u16 = 0b00001000;
 
 /// Bit 2
-/// When in continuous mode and Latching is enabled, the ALERT/READY pin will 
+/// When in continuous mode and Latching is enabled, the ALERT/READY pin will
 /// remain active until the conversion register is read.
 #[repr(u16)]
 pub enum LatchingComparator {
@@ -200,8 +199,6 @@ impl Gain {
     }
 }
 
-
-
 impl fmt::Display for DeviceMode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
@@ -239,16 +236,16 @@ impl ADS1015 {
             comparator_queue: ComparatorQueue::One,
             last_pin: None,
         };
-        
+
         obj.i2cbus.set_slave_address(ADS1X15_DEFAULT_ADDRESS)?;
-        
+
         Ok(obj)
     }
 
-     pub fn new_at_address(_i2cbus: i2c::I2c, _address: u16) -> Result<ADS1015> {
+    pub fn new_at_address(_i2cbus: i2c::I2c, _address: u16) -> Result<ADS1015> {
         // Implement once we have some custom error handling
         todo!();
-    } 
+    }
 
     /// Read the values from the given pin.
     ///
@@ -260,7 +257,7 @@ impl ADS1015 {
             self.request_read(pin)?;
 
             if self.mode == DeviceMode::Single {
-                while !self.conversion_complete()? {               
+                while !self.conversion_complete()? {
                     // Add a timeout in here?
                     continue;
                 }
@@ -278,7 +275,7 @@ impl ADS1015 {
     }
 
     /// Request a read on the specified PIN.
-    /// 
+    ///
     /// Sends the entire config to the device, with the OS pin (15) set to 1 and
     /// the pin or pins to read.
     pub fn request_read(&mut self, pin: Pin) -> Result<()> {
@@ -286,7 +283,7 @@ impl ADS1015 {
         // or using the alert pin?
         self.last_pin = Some(pin);
         let config = ADS1X15_CONFIG_OS_SINGLE
-            | (pin as u16) 
+            | (pin as u16)
             | self.gain as u16
             | self.mode as u16
             | self.data_rate as u16
@@ -299,11 +296,11 @@ impl ADS1015 {
     }
 
     /// Read the conversion register.
-    /// 
+    ///
     /// Used when a read is requested and the ALERT/READY pin is used
     /// to determine when to read
     pub fn read_conversion(&mut self) -> Result<u16> {
-        Ok(self.read_register(ADS1X15_POINTER_CONVERSION)? >> 4)        
+        Ok(self.read_register(ADS1X15_POINTER_CONVERSION)? >> 4)
     }
 
     /// The number of volts the ADC is reading.
@@ -389,7 +386,7 @@ impl ADS1015 {
     /// Set the threshold values default values
     pub fn set_default_threshold_values(&self) -> Result<()> {
         let low: u16 = 0x8000;
-        let high: u16 =  0x7FFF;
+        let high: u16 = 0x7FFF;
 
         self.set_threshhold_registers(low, high)?;
         Ok(())
@@ -400,10 +397,10 @@ impl ADS1015 {
         const MAX_VALUE: u16 = 0x0FFF;
         if low >= high || low > MAX_VALUE || high > MAX_VALUE {
             // This is actually an error state
-            return Ok(())
-        }  
+            return Ok(());
+        }
         self.set_threshhold_registers(low << 4, high << 4)?;
-        Ok(())        
+        Ok(())
     }
 
     /// Helper to set the threshold registers
@@ -414,13 +411,13 @@ impl ADS1015 {
         Ok(())
     }
 
-    /// Sets the device back to defaults. 
+    /// Sets the device back to defaults.
     /// Immediatly writes to the device and doesn't store
     /// the values for future usage.
     pub fn set_defaults(&mut self) -> Result<()> {
         self.set_default_threshold_values()?;
         let config = 0x0000
-            | (Pin::P0_P1 as u16) 
+            | (Pin::P0_P1 as u16)
             | Gain::Gain2 as u16
             | DeviceMode::Single as u16
             | SampleRate::Rate1600 as u16
@@ -429,11 +426,10 @@ impl ADS1015 {
             | LatchingComparator::NonLatching as u16
             | ComparatorQueue::Disable as u16;
 
-            self.write_config(config)?;
-            Ok(())
+        self.write_config(config)?;
+        Ok(())
     }
 }
-
 
 /// Makes sure the data is represented in the target. The mask specifices what
 /// Bits are valid in the data
