@@ -1,11 +1,12 @@
 //! Driver for an ADS1015 Device
 //! Data Sheet: https://cdn-shop.adafruit.com/datasheets/ads1015.pdf
 //!
+use log::error;
 use rppal::i2c;
 //use std::error;
 use std::fmt;
 
-// TODO: Mulitple Address. The chip supports 0x48, 0x49, 0x4A, and 0x4B
+// The chip supports 0x48, 0x49, 0x4A, and 0x4B
 const ADS1X15_DEFAULT_ADDRESS: u16 = 0x48;
 
 // Address of the register that contains the converted value
@@ -223,11 +224,9 @@ pub struct ADS1015 {
     pub polarity: ComparatorPolarity,
     comparator_queue: ComparatorQueue,
     last_pin: Option<Pin>,
+    reset_on_drop: bool,
 }
-
-/// TODO: Specify custom error type
-/// 
-/// Errors when accessing thi ADS1015 chip.
+/// Errors when accessing the ADS1015 chip.
 #[derive(Debug)]
 pub enum Error {
     /// i2c error
@@ -248,7 +247,7 @@ impl fmt::Display for Error {
 impl std::error::Error for Error {}
 
 impl From<i2c::Error> for Error {
-    fn  from(err: i2c::Error) -> Error {
+    fn from(err: i2c::Error) -> Error {
         Error::I2cError(err)
     }
 }
@@ -262,13 +261,13 @@ impl ADS1015 {
         ADS1015::new_with_address(i2cbus, ADS1X15_DEFAULT_ADDRESS)
     }
 
-    /// Construct a new ADS1015 ADC at the specified address on the i2c bus. 
+    /// Construct a new ADS1015 ADC at the specified address on the i2c bus.
     /// Valid address are 0x48, 0x49, 0x4A, and 0x4B
     /// Further options may be configured after it is created
     pub fn new_with_address(i2cbus: i2c::I2c, address: u16) -> Result<ADS1015> {
         if address < ADS1X15_DEFAULT_ADDRESS || address > ADS1X15_DEFAULT_ADDRESS + 3 {
-            return Err(Error::InvalidAddress(address))
-        } 
+            return Err(Error::InvalidAddress(address));
+        }
         let mut obj = ADS1015 {
             i2cbus,
             data_rate: SampleRate::Rate1600,
@@ -277,12 +276,12 @@ impl ADS1015 {
             polarity: ComparatorPolarity::ActiveLow,
             comparator_queue: ComparatorQueue::One,
             last_pin: None,
+            reset_on_drop: true,
         };
 
         obj.i2cbus.set_slave_address(address)?;
 
         Ok(obj)
-        
     }
 
     /// Read the values from the given pin.
@@ -466,6 +465,16 @@ impl ADS1015 {
 
         self.write_config(config)?;
         Ok(())
+    }
+}
+
+impl Drop for ADS1015 {
+    fn drop(&mut self) {
+        if self.reset_on_drop {
+            if let Err(err) = self.set_defaults() {
+                error!("Error dropping ADS1015: {}", err);
+            }
+        }
     }
 }
 
