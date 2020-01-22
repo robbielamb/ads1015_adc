@@ -75,11 +75,17 @@ const ADS1X15_MUX_OFFSET: u16 = 12;
 #[repr(u16)]
 #[derive(Copy, Clone, Debug)]
 pub enum Gain {
+    /// 2/3 Gain
     GainTwoThirds = 0x0000,
+    /// Gain of 1
     Gain1 = 0x0200,
+    /// Gain of 2 (default)
     Gain2 = 0x0400,
+    /// Gain of 4
     Gain4 = 0x0600,
+    /// Gain of 8
     Gain8 = 0x0800,
+    /// Gain of 16
     Gain16 = 0x0A00,
 }
 // Bit 8.
@@ -127,7 +133,7 @@ pub enum ComparatorPolarity {
     /// Active High
     ActiveHigh = 0x0001 << 3,
 }
-const COMPARATOR_BITS_MASK: u16 = 0b00001000;
+//const COMPARATOR_BITS_MASK: u16 = 0b00001000;
 
 /// Bit 2
 /// When in continuous mode and Latching is enabled, the ALERT/READY pin will
@@ -230,7 +236,7 @@ impl ADS1015 {
         let mut obj = ADS1015 {
             i2cbus,
             data_rate: SampleRate::Rate1600,
-            gain: Gain::Gain1,
+            gain: Gain::Gain2,
             mode: DeviceMode::Single,
             polarity: ComparatorPolarity::ActiveLow,
             comparator_queue: ComparatorQueue::One,
@@ -431,9 +437,9 @@ impl ADS1015 {
     }
 }
 
-/// Makes sure the data is represented in the target. The mask specifices what
-/// Bits are valid in the data
-#[inline]
+// Makes sure the data is represented in the target. The mask specifices what
+// Bits are valid in the data
+/* #[inline]
 fn apply_bitmask_data(target: u16, data: u16, mask: u16) -> u16 {
     (target & (0xFF | mask)) ^ data
-}
+} */
