@@ -226,13 +226,49 @@ pub struct ADS1015 {
 }
 
 /// TODO: Specify custom error type
+/// 
+/// Errors when accessing thi ADS1015 chip.
+#[derive(Debug)]
+pub enum Error {
+    /// i2c error
+    I2cError(i2c::Error),
+    /// Invalid address for the device.
+    InvalidAddress(u16),
+}
 
-type Result<T> = std::result::Result<T, i2c::Error>;
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            Error::I2cError(ref err) => err.fmt(f),
+            Error::InvalidAddress(addr) => write!(f, "Invalid device address supplied: {}", addr),
+        }
+    }
+}
+
+impl std::error::Error for Error {}
+
+impl From<i2c::Error> for Error {
+    fn  from(err: i2c::Error) -> Error {
+        Error::I2cError(err)
+    }
+}
+
+type Result<T> = std::result::Result<T, Error>;
 
 impl ADS1015 {
     /// Construct a new ADS1015 ADC on the i2c bus.
     /// Further options may be configured after it is created.
     pub fn new(i2cbus: i2c::I2c) -> Result<ADS1015> {
+        ADS1015::new_with_address(i2cbus, ADS1X15_DEFAULT_ADDRESS)
+    }
+
+    /// Construct a new ADS1015 ADC at the specified address on the i2c bus. 
+    /// Valid address are 0x48, 0x49, 0x4A, and 0x4B
+    /// Further options may be configured after it is created
+    pub fn new_with_address(i2cbus: i2c::I2c, address: u16) -> Result<ADS1015> {
+        if address < ADS1X15_DEFAULT_ADDRESS || address > ADS1X15_DEFAULT_ADDRESS + 3 {
+            return Err(Error::InvalidAddress(address))
+        } 
         let mut obj = ADS1015 {
             i2cbus,
             data_rate: SampleRate::Rate1600,
@@ -243,14 +279,10 @@ impl ADS1015 {
             last_pin: None,
         };
 
-        obj.i2cbus.set_slave_address(ADS1X15_DEFAULT_ADDRESS)?;
+        obj.i2cbus.set_slave_address(address)?;
 
         Ok(obj)
-    }
-
-    pub fn new_at_address(_i2cbus: i2c::I2c, _address: u16) -> Result<ADS1015> {
-        // Implement once we have some custom error handling
-        todo!();
+        
     }
 
     /// Read the values from the given pin.
